@@ -85,24 +85,18 @@ function getActiveTime(shiftDuration, idleTime) {
 // ============================================================
 
 //  another helper function for dates
-function metdate(date , startDate,endDate){
-    let [year,month,day] = date.split('-').map(Number); 
-    let [startyear,startmonth,startday] = startDate.split('-').map(Number); 
-    let [endyear,endmonth,endday] = endDate.split('-').map(Number); 
 
-
-    if (month >= startmonth && month <= endmonth && day>=startday && day <= endday){
-        return True
-    }else return false;
-}
 
 function metQuota(date, activeTime) {
-    if(metdate(date , "2025-4-10", "2025-4-30") && activeTime <= 6*3600){
-        return true;
-    }else if(!metQuota(date , "2025-4-10", "2025-4-30") && activeTime < 8*3600+24*60){
-        return false
-    }
+    const activeSeconds = timeToSec(activeTime);
+    const [y, m, d] = date.split('-').map(Number);
+    
+    const isSpecial = (y === 2025 && m === 4 && d >= 10 && d <= 30);
+    const requiredSeconds = isSpecial ? (6 * 3600) : (8 * 3600 + 24 * 60);
+
+    return activeSeconds >= requiredSeconds;
 }
+
 
 // ============================================================
 // Function 5: addShiftRecord(textFile, shiftObj)
