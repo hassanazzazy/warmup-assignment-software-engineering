@@ -1,5 +1,19 @@
 const fs = require("fs");
 
+// the comments i will write are for me to understand and document how i reached the solutions
+
+
+// i will be dealing with time alot so i will make a helper function (global) so i can use it without having to rewrite it
+function timeToSec(timeString){ // func will transform to sec
+    const[time,mod] = timeString.split(" "); // this will split the string to the time and the am/pm part
+    let [hours,minutes,seconds] = time.split(':').map(Number); // split sting to h m s and make them numbers not strings 
+
+    if (mod == "pm" && hours < 12) hours + 12;
+    if (mod === 'am' && hours === 12) hours = 0;
+
+    return hours*3600 + minutes*60 + seconds; // return in seconds
+}
+
 // ============================================================
 // Function 1: getShiftDuration(startTime, endTime)
 // startTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
@@ -7,7 +21,12 @@ const fs = require("fs");
 // Returns: string formatted as h:mm:ss
 // ============================================================
 function getShiftDuration(startTime, endTime) {
-    // TODO: Implement this function
+    let duration = timeToSec(endTime) - timeToSec(startTime);
+    hours = duration/3600;
+    minutes = (duration - hours*3600)/60;
+    seconds = duration - (hours*3600 + minutes*60)
+
+    return ` ${hours}:${minutes}:${seconds}`;
 }
 
 // ============================================================
