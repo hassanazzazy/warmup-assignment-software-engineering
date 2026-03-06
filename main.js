@@ -9,7 +9,7 @@ function timeToSec(timeString){ // func will transform to sec
     let [hours,minutes,seconds] = time.split(':').map(Number); // split sting to h m s and make them numbers not strings 
 
     if (mod == "pm" && hours < 12) hours + 12;
-    if (mod === 'am' && hours === 12) hours = 0;
+    if (mod == 'am' && hours == 12) hours = 0;
 
     return hours*3600 + minutes*60 + seconds; // return in seconds
 }
@@ -35,8 +35,20 @@ function getShiftDuration(startTime, endTime) {
 // endTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
 // Returns: string formatted as h:mm:ss
 // ============================================================
-function getIdleTime(startTime, endTime) {
-    // TODO: Implement this function
+function getIdleTime(startTime, endTime) {//between 8am and 10pm
+    let idleTime = 0;
+    if(timeToSec(startTime) < 28800){
+        idleTime += 28800 - timeToSec(startTime);
+    }
+    if(timeToSec(endTime) > 79200){
+        idleTime += timeToSec(endTime) - 79,200;
+    }
+
+    hours = idleTime/3600;
+    minutes = (idleTime - hours*3600)/60;
+    seconds = idleTime - (hours*3600 + minutes*60)
+
+    return ` ${hours}:${minutes}:${seconds}`;
 }
 
 // ============================================================
@@ -46,7 +58,13 @@ function getIdleTime(startTime, endTime) {
 // Returns: string formatted as h:mm:ss
 // ============================================================
 function getActiveTime(shiftDuration, idleTime) {
-    // TODO: Implement this function
+    activeTime = timeToSec(shiftDuration) - timeToSec(idleTime)
+
+    hours = activeTime/3600;
+    minutes = (activeTime - hours*3600)/60;
+    seconds = activeTime - (hours*3600 + minutes*60)
+
+    return ` ${hours}:${minutes}:${seconds}`;
 }
 
 // ============================================================
@@ -55,8 +73,25 @@ function getActiveTime(shiftDuration, idleTime) {
 // activeTime: (typeof string) formatted as h:mm:ss
 // Returns: boolean
 // ============================================================
+
+//  another helper function for dates
+function metdate(date , startDate,endDate){
+    let [year,month,day] = date.split('-').map(Number); 
+    let [startyear,startmonth,startday] = startDate.split('-').map(Number); 
+    let [endyear,endmonth,endday] = endDate.split('-').map(Number); 
+
+
+    if (month >= startmonth && month <= endmonth && day>=startday && day <= endday){
+        return True
+    }else return false;
+}
+
 function metQuota(date, activeTime) {
-    // TODO: Implement this function
+    if(metdate(date , "2025-4-10", "2025-4-30") && activeTime <= 6*3600){
+        return true;
+    }else if(!metQuota(date , "2025-4-10", "2025-4-30") && activeTime < 8*3600+24*60){
+        return false
+    }
 }
 
 // ============================================================
