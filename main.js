@@ -8,7 +8,7 @@ function timeToSec(timeString) {
     const [hours, minutes, seconds] = parts[0].split(':').map(Number);
     let totalSeconds = hours * 3600 + minutes * 60 + seconds;
 
-    if (parts.length > 1) { 
+    if (parts.length > 1) {
         const mod = parts[1].toLowerCase();
         if (mod === "pm" && hours < 12) totalSeconds += 12 * 3600;
         if (mod === "am" && hours === 12) totalSeconds -= 12 * 3600;
@@ -16,11 +16,11 @@ function timeToSec(timeString) {
     return totalSeconds;
 }
 
-// Helper to transform seconds back to "h:mm:ss"
 function secToTime(totalSeconds) {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
+    // padStart(2, '0') ensures 1:0:0 becomes 1:00:00
     return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
@@ -32,12 +32,10 @@ function secToTime(totalSeconds) {
 // ============================================================
 function getShiftDuration(startTime, endTime) {
     let duration = timeToSec(endTime) - timeToSec(startTime);
-    hours = duration/3600;
-    minutes = (duration - hours*3600)/60;
-    seconds = duration - (hours*3600 + minutes*60)
-
-    return ` ${hours}:${minutes}:${seconds}`;
+    return secToTime(duration);
 }
+
+
 
 // ============================================================
 // Function 2: getIdleTime(startTime, endTime)
@@ -45,21 +43,17 @@ function getShiftDuration(startTime, endTime) {
 // endTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
 // Returns: string formatted as h:mm:ss
 // ============================================================
-function getIdleTime(startTime, endTime) {//between 8am and 10pm
+function getIdleTime(startTime, endTime) {
+    let start = timeToSec(startTime);
+    let end = timeToSec(endTime);
     let idleTime = 0;
-    if(timeToSec(startTime) < 28800){
-        idleTime += 28800 - timeToSec(startTime);
-    }
-    if(timeToSec(endTime) > 79200){
-        idleTime += timeToSec(endTime) - 79,200;
-    }
+    
+    if (start < 28800) idleTime += 28800 - start;
+    if (end > 79200) idleTime += end - 79200;
 
-    hours = idleTime/3600;
-    minutes = (idleTime - hours*3600)/60;
-    seconds = idleTime - (hours*3600 + minutes*60)
-
-    return ` ${hours}:${minutes}:${seconds}`;
+    return secToTime(idleTime);
 }
+
 
 // ============================================================
 // Function 3: getActiveTime(shiftDuration, idleTime)
@@ -67,15 +61,13 @@ function getIdleTime(startTime, endTime) {//between 8am and 10pm
 // idleTime: (typeof string) formatted as h:mm:ss
 // Returns: string formatted as h:mm:ss
 // ============================================================
+
 function getActiveTime(shiftDuration, idleTime) {
-    activeTime = timeToSec(shiftDuration) - timeToSec(idleTime)
-
-    hours = activeTime/3600;
-    minutes = (activeTime - hours*3600)/60;
-    seconds = activeTime - (hours*3600 + minutes*60)
-
-    return ` ${hours}:${minutes}:${seconds}`;
+    let activeSeconds = timeToSec(shiftDuration) - timeToSec(idleTime);
+    return secToTime(activeSeconds);
 }
+
+
 
 // ============================================================
 // Function 4: metQuota(date, activeTime)
@@ -88,11 +80,10 @@ function getActiveTime(shiftDuration, idleTime) {
 function metQuota(date, activeTime) {
     const activeSeconds = timeToSec(activeTime);
     const [y, m, d] = date.split('-').map(Number);
-    
-    const isSpecial = (y === 2025 && m === 4 && d >= 10 && d <= 30);
-    const requiredSeconds = isSpecial ? (6 * 3600) : (8 * 3600 + 24 * 60);
-
-    return activeSeconds >= requiredSeconds;
+    // Special period: April 10 to April 20
+    const isSpecial = (m === 4 && d >= 10 && d <= 20);
+    const threshold = isSpecial ? (6 * 3600) : (8 * 3600 + 24 * 60);
+    return activeSeconds >= threshold;
 }
 
 
@@ -241,15 +232,23 @@ function getTotalActiveHoursPerMonth(textFile, driverID, month) {
 // ============================================================
 
 function getRequiredHoursPerMonth(textFile, rateFile, bonusCount, driverID, month) {
-    const rates = fs.readFileSync(rateFile, "utf8").trim().split("\n");
-    let driverRateInfo = rates.find(line => line.startsWith(driverID)).split(",");
+    const data = fs.readFileSync(textFile, "utf8").trim().split("\n");
+    const formattedMonth = String(month).padStart(2, '0');
     
-    let dailyRequirement = 8 * 3600 + 24 * 60; 
-    let workingDays = 4; 
+    let shiftCount = 0;
+    for (let i = 1; i < data.length; i++) {
+        let cols = data[i].split(",");
+        if (cols[0] === driverID && cols[2].includes(`-${formattedMonth}-`)) {
+            shiftCount++;
+        }
+    }
 
-    let totalReqSeconds = (workingDays * dailyRequirement) - (bonusCount * 3600);
+    let effectiveDays = shiftCount - bonusCount;
+    let totalReqSeconds = effectiveDays * (8 * 3600 + 24 * 60); 
+    
     return secToTime(totalReqSeconds);
 }
+
 
 // ============================================================
 // Function 10: getNetPay(driverID, actualHours, requiredHours, rateFile)
@@ -260,21 +259,23 @@ function getRequiredHoursPerMonth(textFile, rateFile, bonusCount, driverID, mont
 // Returns: integer (net pay)
 // ============================================================
 
+
 function getNetPay(driverID, actualHours, requiredHours, rateFile) {
     const rates = fs.readFileSync(rateFile, "utf8").trim().split("\n");
-    let driverLine = rates.find(line => line.startsWith(driverID));
-    let baseSalary = parseInt(driverLine.split(",")[2]);
+    let driverLine = rates.find(line => line.startsWith(driverID)).split(",");
+    let baseSalary = parseInt(driverLine[2]);
 
     let actualSec = timeToSec(actualHours);
     let reqSec = timeToSec(requiredHours);
 
     if (actualSec < (0.9 * reqSec)) {
-        let deficiency = reqSec - actualSec;
-        let hoursMissed = deficiency / 3600;
-        let deduction = hoursMissed * 100; 
+        let deficiencySeconds = reqSec - actualSec;
+        let deficiencyHours = deficiencySeconds / 3600;
+        
+        let deduction = deficiencyHours * 7.5; 
         return Math.floor(baseSalary - deduction);
     }
-
+    
     return baseSalary;
 }
 
