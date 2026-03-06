@@ -84,8 +84,6 @@ function getActiveTime(shiftDuration, idleTime) {
 // Returns: boolean
 // ============================================================
 
-//  another helper function for dates
-
 
 function metQuota(date, activeTime) {
     const activeSeconds = timeToSec(activeTime);
@@ -104,8 +102,52 @@ function metQuota(date, activeTime) {
 // shiftObj: (typeof object) has driverID, driverName, date, startTime, endTime
 // Returns: object with 10 properties or empty object {}
 // ============================================================
-function addShiftRecord(textFile, shiftObj) {
 
+function addShiftRecord(textFile, shiftObj) {
+    const data = fs.readFileSync(textFile, "utf8").trim().split("\n");
+    const records = data.slice(1); 
+
+    // Check if  driverID and date exists
+    const exists = records.some(line => {
+        const cols = line.split(",");
+        return cols[0] === shiftObj.driverID && cols[2] === shiftObj.date;
+    });
+    if (exists) return {};
+
+    // Calculate the 4 required values and set default bonus
+    const shiftDuration = getShiftDuration(shiftObj.startTime, shiftObj.endTime);
+    const idleTime = getIdleTime(shiftObj.startTime, shiftObj.endTime);
+    const activeTime = getActiveTime(shiftDuration, idleTime);
+    const quotaMet = metQuota(shiftObj.date, activeTime);
+
+    const newEntry = {
+        ...shiftObj,//spread operator
+        shiftDuration,
+        idleTime,
+        activeTime,
+        metQuota: quotaMet,
+        hasBonus: false
+    };
+
+    // Convert to CSV string line
+    const newLine = Object.values(newEntry).join(",");
+
+    // Find insertion point: After the last record of this driverID
+    let lastIdx = -1;
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].startsWith(shiftObj.driverID + ",")) {
+            lastIdx = i;
+        }
+    }
+
+    if (lastIdx === -1) {
+        data.push(newLine); // Append at the end if driver is new
+    } else {
+        data.splice(lastIdx + 1, 0, newLine); // Insert after last record of this driver
+    }
+
+    fs.writeFileSync(textFile, data.join("\n") + "\n");
+    return newEntry;
 }
 
 // ============================================================
