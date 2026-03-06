@@ -1,17 +1,27 @@
 const fs = require("fs");
 
-// the comments i will write are for me to understand and document how i reached the solutions
 
+// Helper to transform "hh:mm:ss am/pm" to seconds
+function timeToSec(timeString) {
+    if (!timeString) return 0;
+    const parts = timeString.trim().split(" ");
+    const [hours, minutes, seconds] = parts[0].split(':').map(Number);
+    let totalSeconds = hours * 3600 + minutes * 60 + seconds;
 
-// i will be dealing with time alot so i will make a helper function (global) so i can use it without having to rewrite it
-function timeToSec(timeString){ // func will transform to sec
-    const[time,mod] = timeString.split(" "); // this will split the string to the time and the am/pm part
-    let [hours,minutes,seconds] = time.split(':').map(Number); // split sting to h m s and make them numbers not strings 
+    if (parts.length > 1) { 
+        const mod = parts[1].toLowerCase();
+        if (mod === "pm" && hours < 12) totalSeconds += 12 * 3600;
+        if (mod === "am" && hours === 12) totalSeconds -= 12 * 3600;
+    }
+    return totalSeconds;
+}
 
-    if (mod == "pm" && hours < 12) hours + 12;
-    if (mod == 'am' && hours == 12) hours = 0;
-
-    return hours*3600 + minutes*60 + seconds; // return in seconds
+// Helper to transform seconds back to "h:mm:ss"
+function secToTime(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 // ============================================================
@@ -101,7 +111,7 @@ function metQuota(date, activeTime) {
 // Returns: object with 10 properties or empty object {}
 // ============================================================
 function addShiftRecord(textFile, shiftObj) {
-    // TODO: Implement this function
+
 }
 
 // ============================================================
