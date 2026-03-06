@@ -158,9 +158,22 @@ function addShiftRecord(textFile, shiftObj) {
 // newValue: (typeof boolean)
 // Returns: nothing (void)
 // ============================================================
+
 function setBonus(textFile, driverID, date, newValue) {
-    // TODO: Implement this function
+    let data = fs.readFileSync(textFile, "utf8").trim().split("\n");
+    
+    for (let i = 1; i < data.length; i++) {
+        let cols = data[i].split(",");
+        // Match DriverID and Date
+        if (cols[0] === driverID && cols[2] === date) {
+            cols[9] = String(newValue); // Update the HasBonus column
+            data[i] = cols.join(",");
+            break;
+        }
+    }
+    fs.writeFileSync(textFile, data.join("\n") + "\n");
 }
+
 
 // ============================================================
 // Function 7: countBonusPerMonth(textFile, driverID, month)
